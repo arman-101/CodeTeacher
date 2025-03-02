@@ -5,10 +5,10 @@ import os
 import time
 from questions import questions_data
 
-class ProgrammingTriviaGame:
+class CodeTeacher:
     def __init__(self, root):
         self.root = root
-        self.root.title("Programming Trivia Challenge")
+        self.root.title("Code Teacher")
         self.root.geometry("800x600")
         self.root.configure(bg="#f0f2f5")
         
@@ -81,7 +81,7 @@ class ProgrammingTriviaGame:
         header_frame = tk.Frame(self.root, bg="#2c3e50", height=80)
         header_frame.pack(fill="x")
         
-        tk.Label(header_frame, text="Programming Trivia Challenge", 
+        tk.Label(header_frame, text="Code Teacher", 
                 font=("Helvetica", 18, "bold"), fg="white", bg="#2c3e50").pack(pady=20)
         
         self.content_frame = tk.Frame(self.root, bg="#f0f2f5")
@@ -460,7 +460,7 @@ class ProgrammingTriviaGame:
 
 def main():
     root = tk.Tk()
-    app = ProgrammingTriviaGame(root)
+    app = CodeTeacher(root)
     root.mainloop()
 
 if __name__ == "__main__":
