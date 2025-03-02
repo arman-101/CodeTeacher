@@ -24,6 +24,7 @@ class CodeTeacher:
         self.topic_complete = False
         
         self.style = ttk.Style()
+        # Topic button style
         self.style.configure("Custom.TButton", 
                            font=("Helvetica", 12, "bold"),
                            padding=8,
@@ -33,6 +34,16 @@ class CodeTeacher:
         self.style.map("Custom.TButton",
                       background=[("active", "#2c3e50")],
                       foreground=[("active", "#e0e0e0")])
+        # Navigation button style (different color)
+        self.style.configure("Nav.TButton", 
+                           font=("Helvetica", 12, "bold"),
+                           padding=8,
+                           background="#e67e22",
+                           foreground="#ffffff",
+                           borderwidth=0)
+        self.style.map("Nav.TButton",
+                      background=[("active", "#d35400")],
+                      foreground=[("active", "#f0f0f0")])
         
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.show_name_entry()
@@ -48,7 +59,7 @@ class CodeTeacher:
         self.name_entry.pack(pady=15)
         
         ttk.Button(self.content_frame, text="Start", command=self.validate_name,
-                  style="Custom.TButton").pack(pady=20)
+                  style="Nav.TButton").pack(pady=20)
 
     def validate_name(self):
         name = self.name_entry.get().strip().lower()
@@ -64,7 +75,9 @@ class CodeTeacher:
             if name in self.user_data:
                 print(f"Existing user found: {name}, loading progress")
                 for topic in questions_data.keys():
-                    if isinstance(self.user_data[name][topic], int):
+                    if topic not in self.user_data[name]:
+                        self.user_data[name][topic] = {"completed": 0, "time": None, "elapsed": 0}
+                    elif isinstance(self.user_data[name][topic], int):
                         self.user_data[name][topic] = {"completed": self.user_data[name][topic], "time": None, "elapsed": 0}
                     elif "elapsed" not in self.user_data[name][topic]:
                         self.user_data[name][topic]["elapsed"] = 0
@@ -120,17 +133,17 @@ class CodeTeacher:
         self.button_frame.pack(pady=15)
         
         ttk.Button(self.button_frame, text="View Leaderboard", command=self.show_high_scores,
-                  style="Custom.TButton").pack(side="left", padx=5)
+                  style="Nav.TButton").pack(side="left", padx=5)
         self.faq_button = ttk.Button(self.button_frame, text="FAQ", command=self.show_faq,
-                                    style="Custom.TButton")
+                                    style="Nav.TButton")
         self.faq_button.pack(side="left", padx=5)
         self.faq_button.pack_forget()
         self.reset_button = ttk.Button(self.button_frame, text="Reset Score", command=self.reset_score,
-                                      style="Custom.TButton")
+                                      style="Nav.TButton")
         self.reset_button.pack(side="left", padx=5)
         self.reset_button.pack_forget()
         self.home_button = ttk.Button(self.button_frame, text="Home", command=self.return_home,
-                                    style="Custom.TButton")
+                                    style="Nav.TButton")
         self.home_button.pack(side="left", padx=5)
         self.home_button.pack_forget()
 
@@ -152,16 +165,49 @@ class CodeTeacher:
         self.reset_button.pack(side="left", padx=5)
         
         topics = list(questions_data.keys())
-        for topic in topics:
+        left_column = topics[:3]  # First 3 topics
+        right_column = topics[3:]  # Last 3 topics
+        
+        self.topics_frame = tk.Frame(self.options_frame, bg="#f0f2f5")
+        self.topics_frame.pack()
+        
+        left_frame = tk.Frame(self.topics_frame, bg="#f0f2f5")
+        left_frame.pack(side="left", padx=10)
+        right_frame = tk.Frame(self.topics_frame, bg="#f0f2f5")
+        right_frame.pack(side="left", padx=10)
+        
+        # Left column
+        for topic in left_column:
             completed = self.user_data[self.current_user][topic]["completed"]
             time_taken = self.user_data[self.current_user][topic]["time"]
-            text = f"{topic.capitalize()} ({completed}/10)"
-            if completed == 10 and time_taken:
+            topic_score = sum(10 if q["difficulty"] <= 10 else (20 if q["difficulty"] <= 20 else 30)
+                             for q in questions_data[topic][:completed])
+            max_score = self.calculate_topic_score(topic)
+            topic_display = " ".join(word.capitalize() for word in topic.split("_"))
+            text = f"{topic_display} ({completed}/30 - {topic_score}/{max_score})"
+            if completed == 30 and time_taken:
                 text += f" - {time_taken}"
-            btn = ttk.Button(self.options_frame, text=text,
+            btn = ttk.Button(left_frame, text=text,
                            command=lambda t=topic: self.start_topic(t),
-                           style="Custom.TButton")
-            btn.pack(pady=10, padx=10, fill="x")
+                           style="Custom.TButton", width=40)
+            btn.pack(pady=10)
+        
+        # Right column
+        for topic in right_column:
+            completed = self.user_data[self.current_user][topic]["completed"]
+            time_taken = self.user_data[self.current_user][topic]["time"]
+            topic_score = sum(10 if q["difficulty"] <= 10 else (20 if q["difficulty"] <= 20 else 30)
+                             for q in questions_data[topic][:completed])
+            max_score = self.calculate_topic_score(topic)
+            topic_display = " ".join(word.capitalize() for word in topic.split("_"))
+            text = f"{topic_display} ({completed}/30 - {topic_score}/{max_score})"
+            if completed == 30 and time_taken:
+                text += f" - {time_taken}"
+            btn = ttk.Button(right_frame, text=text,
+                           command=lambda t=topic: self.start_topic(t),
+                           style="Custom.TButton", width=40)
+            btn.pack(pady=10)
+        
         self.root.update()
 
     def reset_score(self):
@@ -169,13 +215,13 @@ class CodeTeacher:
             self.user_data[self.current_user] = {topic: {"completed": 0, "time": None, "elapsed": 0} for topic in questions_data.keys()}
             self.high_scores = [entry for entry in self.high_scores if entry["name"] != self.current_user]
             self.save_user_data()
-            self.save_high_score(0)  # Update high_scores.json
+            self.save_high_score(0)
             self.show_home()
 
     def start_topic(self, topic):
         self.current_topic = topic
         completed = self.user_data[self.current_user][topic]["completed"]
-        if completed == 10:
+        if completed == 30:
             if messagebox.askyesno("Reset?", f"You’ve completed {topic.capitalize()}! Want to try again? This will reset your progress and score."):
                 old_score = self.calculate_topic_score(topic)
                 for entry in self.high_scores:
@@ -258,10 +304,10 @@ class CodeTeacher:
         self.enable_buttons()
 
     def update_difficulty(self, difficulty):
-        if difficulty <= 3:
+        if difficulty <= 10:
             color = "#2ecc71"
             text = "Easy"
-        elif difficulty <= 7:
+        elif difficulty <= 20:
             color = "#3498db"
             text = "Medium"
         else:
@@ -278,7 +324,7 @@ class CodeTeacher:
         correct = question["correct"]
         
         if selected == correct:
-            points = 10 if question["difficulty"] <= 3 else (20 if question["difficulty"] <= 7 else 30)
+            points = 10 if question["difficulty"] <= 10 else (20 if question["difficulty"] <= 20 else 30)
             self.score += points
             self.score_label.config(text=f"Score: {self.score}")
             self.feedback_label.config(text="Correct!", fg="green")
@@ -297,7 +343,7 @@ class CodeTeacher:
     def calculate_topic_score(self, topic):
         total = 0
         for question in questions_data[topic]:
-            points = 10 if question["difficulty"] <= 3 else (20 if question["difficulty"] <= 7 else 30)
+            points = 10 if question["difficulty"] <= 10 else (20 if question["difficulty"] <= 20 else 30)
             total += points
         return total
 
@@ -307,7 +353,7 @@ class CodeTeacher:
             completed = self.user_data[user][topic]["completed"]
             for i in range(completed):
                 question = questions_data[topic][i]
-                points = 10 if question["difficulty"] <= 3 else (20 if question["difficulty"] <= 7 else 30)
+                points = 10 if question["difficulty"] <= 10 else (20 if question["difficulty"] <= 20 else 30)
                 total_score += points
         return total_score
 
@@ -426,7 +472,7 @@ class CodeTeacher:
                     bg="#f0f2f5", fg="#333333", width=10).grid(row=i, column=0, pady=5)
             tk.Label(self.options_frame, text=user.title(), font=("Helvetica", 12), 
                     bg="#f0f2f5", fg="#333333", width=20, anchor="w").grid(row=i, column=1, pady=5)
-            tk.Label(self.options_frame, text=f"{solved}/30", font=("Helvetica", 12), 
+            tk.Label(self.options_frame, text=f"{solved}/180", font=("Helvetica", 12), 
                     bg="#f0f2f5", fg="#333333", width=10).grid(row=i, column=2, pady=5)
             tk.Label(self.options_frame, text=f"{score}/{max_score}", font=("Helvetica", 12), 
                     bg="#f0f2f5", fg="#333333", width=15).grid(row=i, column=3, pady=5)
@@ -442,7 +488,7 @@ class CodeTeacher:
         
         tk.Label(self.options_frame, text="How are scores calculated?", 
                 font=("Helvetica", 14, "bold"), bg="#f0f2f5", fg="#333333", anchor="w").pack(pady=(10, 5), padx=10, anchor="w")
-        tk.Label(self.options_frame, text="Questions 1-4 are Easy (worth 10 points each), Questions 5-8 are Medium (20 points), and Questions 9-10 are Hard (30 points).", 
+        tk.Label(self.options_frame, text="Questions 1-10 are Easy (worth 10 points each), Questions 11-20 are Medium (20 points), and Questions 21-30 are Hard (30 points).", 
                 font=("Helvetica", 12), bg="#f0f2f5", fg="#333333", wraplength=700, justify="left").pack(pady=5, padx=20, anchor="w")
         
         tk.Label(self.options_frame, text="What happens to my data?", 
