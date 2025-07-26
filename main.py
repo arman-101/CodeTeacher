@@ -29,21 +29,21 @@ class CodeTeacher:
                            font=("Helvetica", 12, "bold"),
                            padding=8,
                            background="#34495e",
-                           foreground="#ffffff",
+                           foreground="#333333",  # Changed from #ffffff to #333333 for darker text
                            borderwidth=0)
         self.style.map("Custom.TButton",
                       background=[("active", "#2c3e50")],
-                      foreground=[("active", "#e0e0e0")])
-        # Navigation button style (different color)
+                      foreground=[("active", "#666666")])  # Adjusted active foreground for consistency
+        # Navigation button style
         self.style.configure("Nav.TButton", 
                            font=("Helvetica", 12, "bold"),
                            padding=8,
                            background="#e67e22",
-                           foreground="#ffffff",
+                           foreground="#333333",  # Changed from #ffffff to #333333 for darker text
                            borderwidth=0)
         self.style.map("Nav.TButton",
                       background=[("active", "#d35400")],
-                      foreground=[("active", "#f0f0f0")])
+                      foreground=[("active", "#666666")])  # Adjusted active foreground for consistency
         
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.show_name_entry()
